@@ -2,6 +2,8 @@ const CACHE_NAME = 'tax-calculator-cache-v1';
 const URLS_TO_CACHE = [
   '/',
   '/index.html',
+  '/App.js',
+  '/TaxCalculator.js',
   '/styles.css',
   '/manifest.json',
   '/favicon.ico',
