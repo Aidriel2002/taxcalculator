@@ -1,7 +1,5 @@
 /* eslint-disable no-restricted-globals */
-import { precacheAndRoute } from 'workbox-precaching';
 
-precacheAndRoute(self.__WB_MANIFEST);
 const CACHE_NAME = 'tax-calculator-cache-v2';
 
 self.addEventListener('install', (event) => {
