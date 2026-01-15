@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import './styles.css';
+import './styles.css'
 
 export default function TaxCalculator() {
   const defaultInputs = {
@@ -11,177 +11,38 @@ export default function TaxCalculator() {
   };
 
   const [currentPage, setCurrentPage] = useState('calculator');
+  const [showCalculator, setShowCalculator] = useState(false);
+  const [calcDisplay, setCalcDisplay] = useState('0');
+  const [calcExpression, setCalcExpression] = useState('');
+  const [calcPrevValue, setCalcPrevValue] = useState(null);
+  const [calcOperation, setCalcOperation] = useState(null);
+  const [calcWaitingForOperand, setCalcWaitingForOperand] = useState(false);
 
   const [inputs, setInputs] = useState(() => {
-    const raw = localStorage.getItem('taxCalculatorInputs');
-    if (raw) {
-      try {
-        return JSON.parse(raw);
-      } catch (err) {
-        console.error('Error parsing saved inputs:', err);
-      }
+    try {
+      const saved = localStorage.getItem('taxCalculatorInputs');
+      return saved ? JSON.parse(saved) : defaultInputs;
+    } catch {
+      return defaultInputs;
     }
-    return defaultInputs;
   });
 
   const [history, setHistory] = useState(() => {
-    const raw = localStorage.getItem('taxCalculatorHistory');
-    if (raw) {
-      try {
-        return JSON.parse(raw);
-      } catch (err) {
-        console.error('Error parsing saved history:', err);
-      }
+    try {
+      const saved = localStorage.getItem('taxCalculatorHistory');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
     }
-    return [];
   });
-
- const printCalculation = () => {
-  const resultsSection = document.querySelector('.results-section');
-  const tableContent = resultsSection.querySelector('.results-table');
-  const newWin = window.open('');
-  newWin.document.write(`
-    <html>
-      <head>
-        <title>Multifactors Sales Tax</title>
-        <style>
-          body { font-family: Arial, sans-serif; padding: 20px; }
-          h1 { text-align: center; margin-bottom: 30px; }
-          table { border-collapse: collapse; width: 100%; }
-          th, td { border: 1px solid #ddd; padding: 8px; }
-          th { background-color: #f2f2f2; }
-          .section-title td {
-            background-color: #e0e0e0;
-            font-weight: bold;
-            text-align: left;
-            padding-top: 15px;
-          }
-          .total td {
-            font-weight: bold;
-            background-color: #f9f9f9;
-          }
-          .value {
-            text-align: right;
-          }
-        </style>
-      </head>
-      <body>
-        <h1>Multifactors Sales Tax</h1>
-        ${tableContent.outerHTML}
-      </body>
-    </html>
-  `);
-  newWin.document.close();
-  newWin.focus();
-  newWin.print();
-  newWin.close();
-};
-
-const downloadCalculation = () => {
-  const lines = [];
-
-  const pushSection = (title, rows) => {
-    lines.push(`\n=== ${title} ===`);
-    rows.forEach(([label, value]) => {
-      const formattedValue = typeof value === 'string' ? value : formatCurrency(value);
-      lines.push(`${label}: ${formattedValue}`);
-    });
-  };
-
-  const {
-    priceVatEx,
-    outputVat,
-    abc,
-    expensesVatInc,
-    inputVat,
-    expensesVatEx,
-    expensesNonVat,
-    taxableIncome,
-    outputVatCalc,
-    withholdingVat5,
-    vatStillPayable,
-    incomeTaxDue,
-    withholdingIt2,
-    incomeTaxStillPayable,
-    totalTaxesPayable,
-    totalIfNoWithholding,
-    netIncomeAfterTax,
-    percentIncome,
-    chequeReceivable,
-    undeclaredExpenses,
-    tpc1Percent,
-    netIncomeAfterTpc1,
-  } = calculations;
-
-  pushSection("PRICE BREAKDOWN", [
-    ['Price (VAT-Exclusive)', priceVatEx],
-    ['Add: Output VAT', outputVat],
-    ['Total Contract Price (ABC)', abc],
-  ]);
-
-  pushSection("EXPENSES", [
-    ['Expenses (VAT Inc)', expensesVatInc],
-    ['Less: Input VAT', inputVat],
-    ['Expenses (VAT Ex)', expensesVatEx],
-  ]);
-
-  pushSection("TAXABLE INCOME", [
-    ['Price', abc],
-    ['Less: Expense - VATable', expensesVatEx],
-    ['Less: Expense - Non-VATable', expensesNonVat],
-    ['Taxable Income', taxableIncome],
-  ]);
-
-  pushSection("VAT COMPUTATION", [
-    ['Output VAT (12% of VAT Ex Price)', outputVatCalc],
-    ['Less: 5% Withholding VAT', withholdingVat5],
-    ['Less: Input VAT', inputVat],
-    ['VAT Still Payable', vatStillPayable],
-  ]);
-
-  pushSection("INCOME TAX", [
-    ['Income Tax Due (25% of Taxable Income)', incomeTaxDue],
-    ['Less: 2% Withholding IT', withholdingIt2],
-    ['Income Tax Still Payable', incomeTaxStillPayable],
-  ]);
-
-  pushSection("SUMMARY", [
-    ['VAT Still Payable', vatStillPayable],
-    ['Income Tax Still Payable', incomeTaxStillPayable],
-    ['Total Taxes Still Payable (TO BE PAID TO BIR)', totalTaxesPayable],
-    ['IF NO WITHHOLDING TAX (2307)', totalIfNoWithholding],
-    ['Net Income After Tax', netIncomeAfterTax],
-    ['% Income', formatPercent(percentIncome)],
-    [`Cheque Receivable (minus retention ${inputs.retentionPercent}%)`, chequeReceivable],
-  ]);
-
-  if (undeclaredExpenses > 0) {
-    pushSection("UNDECLARED EXPENSES", [
-      ['Undeclared Expenses', undeclaredExpenses],
-      ['TPC 1', formatPercent(tpc1Percent)],
-      ['Net Income After TPC 1', netIncomeAfterTpc1],
-    ]);
-  }
-
-  const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `Tax_Calculation_${new Date().toISOString().slice(0, 10)}.txt`;
-  a.click();
-  URL.revokeObjectURL(url);
-};
-
 
   const [calculations, setCalculations] = useState({});
 
   useEffect(() => {
-    console.log('Saving inputs to localStorage:', inputs);
     localStorage.setItem('taxCalculatorInputs', JSON.stringify(inputs));
   }, [inputs]);
 
   useEffect(() => {
-    console.log('Saving history to localStorage:', history);
     localStorage.setItem('taxCalculatorHistory', JSON.stringify(history));
   }, [history]);
 
@@ -190,56 +51,30 @@ const downloadCalculation = () => {
 
     const priceVatEx = abc / 1.12;
     const outputVat = abc - priceVatEx;
-
     const inputVat = (expensesVatInc / 1.12) * 0.12;
     const expensesVatEx = expensesVatInc - inputVat;
-
     const taxableIncome = abc - expensesVatEx - expensesNonVat;
-
     const outputVatCalc = priceVatEx * 0.12;
     const withholdingVat5 = priceVatEx * 0.05;
     const vatStillPayable = outputVatCalc - withholdingVat5 - inputVat;
-
     const incomeTaxDue = taxableIncome * 0.25;
     const withholdingIt2 = priceVatEx * 0.02;
     const incomeTaxStillPayable = incomeTaxDue - withholdingIt2;
-
     const totalTaxesPayable = vatStillPayable + incomeTaxStillPayable;
     const totalIfNoWithholding = outputVatCalc - inputVat + incomeTaxDue;
-
     const netIncomeAfterTax = abc - expensesVatInc - expensesNonVat - totalIfNoWithholding;
     const percentIncome = 1 - (expensesVatInc + expensesNonVat + totalIfNoWithholding) / abc;
-
     const checqueComp = abc - withholdingVat5 - withholdingIt2;
-    const chequeReceivable = checqueComp * (1 - retentionPercent / 100); 
-
+    const chequeReceivable = checqueComp * (1 - retentionPercent / 100);
     const tpc1Percent = undeclaredExpenses > 0 ? (undeclaredExpenses / abc) : 0;
     const netIncomeAfterTpc1 = netIncomeAfterTax - undeclaredExpenses;
 
     setCalculations({
-      priceVatEx,
-      outputVat,
-      abc,
-      expensesVatInc,
-      inputVat,
-      expensesVatEx,
-      expensesNonVat,
-      taxableIncome,
-      outputVatCalc,
-      withholdingVat5,
-      vatStillPayable,
-      incomeTaxDue,
-      withholdingIt2,
-      incomeTaxStillPayable,
-      totalTaxesPayable,
-      totalIfNoWithholding,
-      netIncomeAfterTax,
-      percentIncome,
-      chequeReceivable,
-      undeclaredExpenses,
-      tpc1Percent,
-      netIncomeAfterTpc1,
-      checqueComp
+      priceVatEx, outputVat, abc, expensesVatInc, inputVat, expensesVatEx, expensesNonVat,
+      taxableIncome, outputVatCalc, withholdingVat5, vatStillPayable, incomeTaxDue,
+      withholdingIt2, incomeTaxStillPayable, totalTaxesPayable, totalIfNoWithholding,
+      netIncomeAfterTax, percentIncome, chequeReceivable, undeclaredExpenses,
+      tpc1Percent, netIncomeAfterTpc1, checqueComp
     });
   }, [inputs]);
 
@@ -248,10 +83,7 @@ const downloadCalculation = () => {
   }, [calculateTaxes]);
 
   const handleInputChange = (field, value) => {
-    setInputs(prev => ({
-      ...prev,
-      [field]: parseFloat(value) || 0
-    }));
+    setInputs(prev => ({ ...prev, [field]: parseFloat(value) || 0 }));
   };
 
   const formatCurrency = (num) => {
@@ -263,9 +95,7 @@ const downloadCalculation = () => {
     }).format(num || 0);
   };
 
-  const formatPercent = (num) => {
-    return `${(num * 100).toFixed(2)}%`;
-  };
+  const formatPercent = (num) => `${(num * 100).toFixed(2)}%`;
 
   const saveCalculation = () => {
     const newEntry = {
@@ -293,59 +123,217 @@ const downloadCalculation = () => {
     }
   };
 
-  const downloadAllHistory = () => {
-    const lines = [];
-    lines.push('TAX CALCULATOR - CALCULATION HISTORY');
-    lines.push(`Generated: ${new Date().toLocaleString()}`);
-    lines.push(`Total Calculations: ${history.length}`);
-    lines.push('='.repeat(80));
+  const printCalculation = () => {
+    const resultsSection = document.querySelector('.results-section');
+    const tableContent = resultsSection.querySelector('.results-table');
+    const newWin = window.open('');
+    newWin.document.write(`
+      <html>
+        <head>
+          <title>Multifactors Sales Tax</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            h1 { text-align: center; margin-bottom: 30px; }
+            table { border-collapse: collapse; width: 100%; }
+            th, td { border: 1px solid #ddd; padding: 8px; }
+            th { background-color: #f2f2f2; }
+            .section-title td { background-color: #667eea; color: white; font-weight: bold; }
+            .value { text-align: right; }
+          </style>
+        </head>
+        <body>
+          <h1>Multifactors Sales Tax</h1>
+          ${tableContent.outerHTML}
+        </body>
+      </html>
+    `);
+    newWin.document.close();
+    newWin.focus();
+    newWin.print();
+    newWin.close();
+  };
 
-    history.forEach((entry, index) => {
-      lines.push(`\n\n### CALCULATION ${index + 1} ###`);
-      lines.push(`Date: ${entry.timestamp}`);
-      lines.push('-'.repeat(80));
+  const downloadCalculation = () => {
+    const lines = ['=== TAX CALCULATION REPORT ===\n'];
+    const sections = [
+      ['PRICE BREAKDOWN', [
+        ['Price (VAT-Exclusive)', calculations.priceVatEx],
+        ['Add: Output VAT', calculations.outputVat],
+        ['Total Contract Price (ABC)', calculations.abc],
+      ]],
+      ['EXPENSES', [
+        ['Expenses (VAT Inc)', calculations.expensesVatInc],
+        ['Less: Input VAT', calculations.inputVat],
+        ['Expenses (VAT Ex)', calculations.expensesVatEx],
+      ]],
+      ['TAXABLE INCOME', [
+        ['Price', calculations.abc],
+        ['Less: Expense - VATable', calculations.expensesVatEx],
+        ['Less: Expense - Non-VATable', calculations.expensesNonVat],
+        ['Taxable Income', calculations.taxableIncome],
+      ]],
+      ['VAT COMPUTATION', [
+        ['Output VAT (12% of VAT Ex Price)', calculations.outputVatCalc],
+        ['Less: 5% Withholding VAT', calculations.withholdingVat5],
+        ['Less: Input VAT', calculations.inputVat],
+        ['VAT Still Payable', calculations.vatStillPayable],
+      ]],
+      ['INCOME TAX', [
+        ['Income Tax Due (25% of Taxable Income)', calculations.incomeTaxDue],
+        ['Less: 2% Withholding IT', calculations.withholdingIt2],
+        ['Income Tax Still Payable', calculations.incomeTaxStillPayable],
+      ]],
+      ['SUMMARY', [
+        ['VAT Still Payable', calculations.vatStillPayable],
+        ['Income Tax Still Payable', calculations.incomeTaxStillPayable],
+        ['Total Taxes Still Payable', calculations.totalTaxesPayable],
+        ['Net Income After Tax', calculations.netIncomeAfterTax],
+        ['% Income', formatPercent(calculations.percentIncome)],
+        ['Cheque Receivable', calculations.chequeReceivable],
+      ]],
+    ];
 
-      const pushSection = (title, rows) => {
-        lines.push(`\n${title}`);
-        rows.forEach(([label, value]) => {
-          const formattedValue = typeof value === 'string' ? value : formatCurrency(value);
-          lines.push(`  ${label}: ${formattedValue}`);
-        });
-      };
-
-      pushSection("INPUT PARAMETERS", [
-        ['Total Contract Price (ABC)', entry.inputs.abc],
-        ['Expenses (VAT Inc)', entry.inputs.expensesVatInc],
-        ['Expenses (Non-VAT)', entry.inputs.expensesNonVat],
-        ['Retention Percentage', `${entry.inputs.retentionPercent}%`],
-        ...(entry.inputs.undeclaredExpenses > 0 ? [['Undeclared Expenses', entry.inputs.undeclaredExpenses]] : [])
-      ]);
-
-      pushSection("RESULTS", [
-        ['VAT Still Payable', entry.results.vatStillPayable],
-        ['Income Tax Still Payable', entry.results.incomeTaxStillPayable],
-        ['Total Taxes Payable', entry.results.totalTaxesPayable],
-        ['Net Income After Tax', entry.results.netIncomeAfterTax],
-        ['% Income', formatPercent(entry.results.percentIncome)],
-        ['Cheque Receivable', entry.results.chequeReceivable],
-      ]);
-
-      if (entry.inputs.undeclaredExpenses > 0) {
-        pushSection("UNDECLARED EXPENSES", [
-          ['Undeclared Expenses', entry.results.undeclaredExpenses],
-          ['TPC 1', formatPercent(entry.results.tpc1Percent)],
-          ['Net Income After TPC 1', entry.results.netIncomeAfterTpc1],
-        ]);
-      }
+    sections.forEach(([title, rows]) => {
+      lines.push(`\n=== ${title} ===`);
+      rows.forEach(([label, value]) => {
+        const formatted = typeof value === 'string' ? value : formatCurrency(value);
+        lines.push(`${label}: ${formatted}`);
+      });
     });
 
-    const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+    if (inputs.undeclaredExpenses > 0) {
+      lines.push('\n=== UNDECLARED EXPENSES ===');
+      lines.push(`Undeclared Expenses: ${formatCurrency(calculations.undeclaredExpenses)}`);
+      lines.push(`TPC 1: ${formatPercent(calculations.tpc1Percent)}`);
+      lines.push(`Net Income After TPC 1: ${formatCurrency(calculations.netIncomeAfterTpc1)}`);
+    }
+
+    const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `Tax_Calculator_History_${new Date().toISOString().slice(0, 10)}.txt`;
+    a.download = `Tax_Calculation_${new Date().toISOString().slice(0, 10)}.txt`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const downloadAllHistory = () => {
+    const lines = ['TAX CALCULATOR - CALCULATION HISTORY\n'];
+    lines.push(`Generated: ${new Date().toLocaleString()}`);
+    lines.push(`Total Calculations: ${history.length}\n`);
+
+    history.forEach((entry, index) => {
+      lines.push(`\n=== CALCULATION ${index + 1} ===`);
+      lines.push(`Date: ${entry.timestamp}`);
+      lines.push(`ABC: ${formatCurrency(entry.inputs.abc)}`);
+      lines.push(`Net Income: ${formatCurrency(entry.results.netIncomeAfterTax)}`);
+    });
+
+    const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Tax_History_${new Date().toISOString().slice(0, 10)}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Calculator Functions
+  const handleCalculatorNumber = (num) => {
+    if (calcWaitingForOperand) {
+      setCalcDisplay(String(num));
+      setCalcExpression(calcExpression + ' ' + num);
+      setCalcWaitingForOperand(false);
+    } else {
+      const newDisplay = calcDisplay === '0' ? String(num) : calcDisplay + num;
+      setCalcDisplay(newDisplay);
+      if (calcExpression && !calcWaitingForOperand) {
+        // Replace last number in expression
+        const parts = calcExpression.split(' ');
+        parts[parts.length - 1] = newDisplay;
+        setCalcExpression(parts.join(' '));
+      } else if (!calcExpression) {
+        setCalcExpression(newDisplay);
+      }
+    }
+  };
+
+  const handleCalculatorDecimal = () => {
+    if (calcWaitingForOperand) {
+      setCalcDisplay('0.');
+      setCalcExpression(calcExpression + ' 0.');
+      setCalcWaitingForOperand(false);
+    } else if (calcDisplay.indexOf('.') === -1) {
+      const newDisplay = calcDisplay + '.';
+      setCalcDisplay(newDisplay);
+      if (calcExpression) {
+        const parts = calcExpression.split(' ');
+        parts[parts.length - 1] = newDisplay;
+        setCalcExpression(parts.join(' '));
+      } else {
+        setCalcExpression(newDisplay);
+      }
+    }
+  };
+
+  const handleCalculatorClear = () => {
+    setCalcDisplay('0');
+    setCalcExpression('');
+    setCalcPrevValue(null);
+    setCalcOperation(null);
+    setCalcWaitingForOperand(false);
+  };
+
+  const performCalculation = (prev, current, operation) => {
+    switch (operation) {
+      case '+': return prev + current;
+      case '-': return prev - current;
+      case '×': return prev * current;
+      case '÷': return current !== 0 ? prev / current : 0;
+      case '%': return prev % current;
+      default: return current;
+    }
+  };
+
+  const handleCalculatorOperation = (nextOperation) => {
+    const inputValue = parseFloat(calcDisplay);
+    
+    if (calcPrevValue === null) {
+      setCalcPrevValue(inputValue);
+      setCalcExpression(calcDisplay + ' ' + nextOperation);
+    } else if (calcOperation) {
+      const newValue = performCalculation(calcPrevValue, inputValue, calcOperation);
+      setCalcDisplay(String(newValue));
+      setCalcPrevValue(newValue);
+      setCalcExpression(calcExpression + ' ' + nextOperation);
+    }
+    
+    setCalcWaitingForOperand(true);
+    setCalcOperation(nextOperation);
+  };
+
+  const handleCalculatorEquals = () => {
+    const inputValue = parseFloat(calcDisplay);
+    if (calcPrevValue !== null && calcOperation) {
+      const newValue = performCalculation(calcPrevValue, inputValue, calcOperation);
+      setCalcExpression(calcExpression + ' = ' + newValue);
+      setCalcDisplay(String(newValue));
+      setCalcPrevValue(null);
+      setCalcOperation(null);
+      setCalcWaitingForOperand(true);
+    }
+  };
+
+  const handleCalculatorToggleSign = () => {
+    const newValue = String(parseFloat(calcDisplay) * -1);
+    setCalcDisplay(newValue);
+    if (calcExpression) {
+      const parts = calcExpression.split(' ');
+      parts[parts.length - 1] = newValue;
+      setCalcExpression(parts.join(' '));
+    } else {
+      setCalcExpression(newValue);
+    }
   };
 
   if (currentPage === 'history') {
@@ -354,8 +342,9 @@ const downloadCalculation = () => {
         <nav className="navbar">
           <h1>Tax Calculator</h1>
           <div className="nav-buttons">
-            <button onClick={() => setCurrentPage('calculator')}>Calculator</button>
+            <button onClick={() => setCurrentPage('calculator')}>Tax Calculator</button>
             <button className="active">History ({history.length})</button>
+            <button onClick={() => setShowCalculator(true)}>Calculator</button>
           </div>
         </nav>
 
@@ -364,23 +353,21 @@ const downloadCalculation = () => {
             <div className="history-header">
               <h2>Calculation History</h2>
               {history.length > 0 && (
-  <div className="history-actions">
-    <button className="downloadbttn" onClick={downloadAllHistory}>
-      ⬇️ Download All
-    </button>
-    <button className="btn-danger" onClick={clearHistory}>
-      Clear All History
-    </button>
-  </div>
-)}
+                <div className="history-actions">
+                  <button className="downloadbttn" onClick={downloadAllHistory}>
+                    ⬇️ Download All
+                  </button>
+                  <button className="btn-danger" onClick={clearHistory}>
+                    Clear All History
+                  </button>
+                </div>
+              )}
             </div>
 
             {history.length === 0 ? (
               <div className="empty-state">
                 <p>No saved calculations yet.</p>
-                <button onClick={() => setCurrentPage('calculator')}>
-                  Go to Calculator
-                </button>
+                <button onClick={() => setCurrentPage('calculator')}>Go to Calculator</button>
               </div>
             ) : (
               <div className="history-grid">
@@ -388,9 +375,7 @@ const downloadCalculation = () => {
                   <div key={entry.id} className="history-card">
                     <div className="history-card-header">
                       <span className="history-date">{entry.timestamp}</span>
-                      <span className="history-badge">
-                        {formatCurrency(entry.inputs.abc)}
-                      </span>
+                      <span className="history-badge">{formatCurrency(entry.inputs.abc)}</span>
                     </div>
                     <div className="history-card-body">
                       <div className="history-row">
@@ -417,12 +402,8 @@ const downloadCalculation = () => {
                       </div>
                     </div>
                     <div className="history-card-footer">
-                      <button className="btn-primary" onClick={() => loadCalculation(entry)}>
-                        Load
-                      </button>
-                      <button className="btn-secondary" onClick={() => deleteCalculation(entry.id)}>
-                        Delete
-                      </button>
+                      <button className="btn-primary" onClick={() => loadCalculation(entry)}>Load</button>
+                      <button className="btn-secondary" onClick={() => deleteCalculation(entry.id)}>Delete</button>
                     </div>
                   </div>
                 ))}
@@ -430,6 +411,41 @@ const downloadCalculation = () => {
             )}
           </div>
         </div>
+
+        {showCalculator && (
+          <div className="calculator-modal-overlay" onClick={() => setShowCalculator(false)}>
+            <div className="calculator-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="calculator-modal-header">
+                <h3>Calculator</h3>
+                <button className="close-btn" onClick={() => setShowCalculator(false)}>×</button>
+              </div>
+              <div className="calculator-body">
+                <div className="calculator-display">{calcDisplay}</div>
+                <div className="calculator-buttons">
+                  <button className="calc-btn function" onClick={handleCalculatorClear}>C</button>
+                  <button className="calc-btn function" onClick={handleCalculatorToggleSign}>+/-</button>
+                  <button className="calc-btn function" onClick={() => handleCalculatorOperation('%')}>%</button>
+                  <button className="calc-btn operator" onClick={() => handleCalculatorOperation('÷')}>÷</button>
+                  <button className="calc-btn" onClick={() => handleCalculatorNumber(7)}>7</button>
+                  <button className="calc-btn" onClick={() => handleCalculatorNumber(8)}>8</button>
+                  <button className="calc-btn" onClick={() => handleCalculatorNumber(9)}>9</button>
+                  <button className="calc-btn operator" onClick={() => handleCalculatorOperation('×')}>×</button>
+                  <button className="calc-btn" onClick={() => handleCalculatorNumber(4)}>4</button>
+                  <button className="calc-btn" onClick={() => handleCalculatorNumber(5)}>5</button>
+                  <button className="calc-btn" onClick={() => handleCalculatorNumber(6)}>6</button>
+                  <button className="calc-btn operator" onClick={() => handleCalculatorOperation('-')}>-</button>
+                  <button className="calc-btn" onClick={() => handleCalculatorNumber(1)}>1</button>
+                  <button className="calc-btn" onClick={() => handleCalculatorNumber(2)}>2</button>
+                  <button className="calc-btn" onClick={() => handleCalculatorNumber(3)}>3</button>
+                  <button className="calc-btn operator" onClick={() => handleCalculatorOperation('+')}>+</button>
+                  <button className="calc-btn zero" onClick={() => handleCalculatorNumber(0)}>0</button>
+                  <button className="calc-btn" onClick={handleCalculatorDecimal}>.</button>
+                  <button className="calc-btn operator" onClick={handleCalculatorEquals}>=</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -439,10 +455,9 @@ const downloadCalculation = () => {
       <nav className="navbar">
         <h1>Tax Calculator</h1>
         <div className="nav-buttons">
-          <button className="active">Calculator</button>
-          <button onClick={() => setCurrentPage('history')}>
-            History ({history.length})
-          </button>
+          <button className="active">Tax Calculator</button>
+          <button onClick={() => setCurrentPage('history')}>History ({history.length})</button>
+          <button onClick={() => setShowCalculator(true)}>Calculator</button>
         </div>
       </nav>
 
@@ -456,7 +471,7 @@ const downloadCalculation = () => {
                 { label: 'Expenses (VAT Inclusive)', field: 'expensesVatInc' },
                 { label: 'Expenses (Non-VATable)', field: 'expensesNonVat' },
                 { label: 'Retention Percentage (%)', field: 'retentionPercent' },
-                { label: 'Undeclared Expenses (Optional)', field: 'undeclaredExpenses', optional: true },
+                { label: 'Undeclared Expenses', field: 'undeclaredExpenses', optional: true },
               ].map(({ label, field, optional }) => (
                 <div className={`input-field ${optional ? 'optional' : ''}`} key={field}>
                   <label>
@@ -468,28 +483,22 @@ const downloadCalculation = () => {
                     onChange={(e) => handleInputChange(field, e.target.value)}
                     step="0.01"
                     placeholder="0.00"
-                    min={field === 'retentionPercent' ? '0' : undefined}
-                    max={field === 'retentionPercent' ? '100' : undefined}
                   />
                 </div>
               ))}
-            </div>     
-            <button className="save-button" onClick={saveCalculation}>
-              Save Calculation
-            </button>
+            </div>
+            <button className="save-button" onClick={saveCalculation}>Save Calculation</button>
           </div>
 
           <div className="results-section">
             <div className="headerP">
-              <div className="textResult">
-                 <h2>Results</h2>
-              </div>
+              <h2>Results</h2>
               <div className="bttns">
-                <button onClick={printCalculation} className='printbttn'>🖨️ Print</button>
-                <button onClick={downloadCalculation} className='downloadbttn'>⬇️ Download</button>
+                <button onClick={printCalculation} className="printbttn">🖨️ Print</button>
+                <button onClick={downloadCalculation} className="downloadbttn">⬇️ Download</button>
               </div>
             </div>
-           
+
             <table className="results-table">
               <tbody>
                 {[
@@ -523,11 +532,10 @@ const downloadCalculation = () => {
                   ['SUMMARY', [
                     ['VAT Still Payable', calculations.vatStillPayable],
                     ['Income Tax Still Payable', calculations.incomeTaxStillPayable],
-                    ['Total Taxes Still Payable (TO BE PAID TO BIR)', calculations.totalTaxesPayable],
-                    ['IF NO WITHHOLDING TAX (2307)', calculations.totalIfNoWithholding],
+                    ['Total Taxes Still Payable', calculations.totalTaxesPayable],
                     ['Net Income After Tax', calculations.netIncomeAfterTax],
                     ['% Income', formatPercent(calculations.percentIncome)],
-                    [`Cheque Receivable (minus retention ${inputs.retentionPercent}%)`, calculations.chequeReceivable],
+                    [`Cheque Receivable (minus ${inputs.retentionPercent}%)`, calculations.chequeReceivable],
                   ]],
                   ...(inputs.undeclaredExpenses > 0 ? [['UNDECLARED EXPENSES', [
                     ['Undeclared Expenses', calculations.undeclaredExpenses],
@@ -550,6 +558,41 @@ const downloadCalculation = () => {
           </div>
         </div>
       </div>
+
+      {showCalculator && (
+        <div className="calculator-modal-overlay" onClick={() => setShowCalculator(false)}>
+          <div className="calculator-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="calculator-modal-header">
+              <h3>Calculator</h3>
+              <button className="close-btn" onClick={() => setShowCalculator(false)}>×</button>
+            </div>
+            <div className="calculator-body">
+              <div className="calculator-display">{calcExpression || '0'}</div>
+              <div className="calculator-buttons">
+                <button className="calc-btn function" onClick={handleCalculatorClear}>C</button>
+                <button className="calc-btn function" onClick={handleCalculatorToggleSign}>+/-</button>
+                <button className="calc-btn function" onClick={() => handleCalculatorOperation('%')}>%</button>
+                <button className="calc-btn operator" onClick={() => handleCalculatorOperation('÷')}>÷</button>
+                <button className="calc-btn" onClick={() => handleCalculatorNumber(7)}>7</button>
+                <button className="calc-btn" onClick={() => handleCalculatorNumber(8)}>8</button>
+                <button className="calc-btn" onClick={() => handleCalculatorNumber(9)}>9</button>
+                <button className="calc-btn operator" onClick={() => handleCalculatorOperation('×')}>×</button>
+                <button className="calc-btn" onClick={() => handleCalculatorNumber(4)}>4</button>
+                <button className="calc-btn" onClick={() => handleCalculatorNumber(5)}>5</button>
+                <button className="calc-btn" onClick={() => handleCalculatorNumber(6)}>6</button>
+                <button className="calc-btn operator" onClick={() => handleCalculatorOperation('-')}>-</button>
+                <button className="calc-btn" onClick={() => handleCalculatorNumber(1)}>1</button>
+                <button className="calc-btn" onClick={() => handleCalculatorNumber(2)}>2</button>
+                <button className="calc-btn" onClick={() => handleCalculatorNumber(3)}>3</button>
+                <button className="calc-btn operator" onClick={() => handleCalculatorOperation('+')}>+</button>
+                <button className="calc-btn zero" onClick={() => handleCalculatorNumber(0)}>0</button>
+                <button className="calc-btn" onClick={handleCalculatorDecimal}>.</button>
+                <button className="calc-btn operator" onClick={handleCalculatorEquals}>=</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
