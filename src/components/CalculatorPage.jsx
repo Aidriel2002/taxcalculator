@@ -1,46 +1,86 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 export default function CalculatorPage({ inputs, setInputs, projects, onSave }) {
   const [calculations, setCalculations] = useState({});
 
-  useEffect(() => {
-    calculateTaxes();
-  }, [inputs]);
+  const calculateTaxes = useCallback(() => {
+    const {
+      abc,
+      expensesVatInc,
+      expensesNonVat,
+      retentionPercent,
+      undeclaredExpenses
+    } = inputs;
 
-  const calculateTaxes = () => {
-    const { abc, expensesVatInc, expensesNonVat, retentionPercent, undeclaredExpenses } = inputs;
-
-    const priceVatEx = abc / 1.12;
+    const priceVatEx = abc ? abc / 1.12 : 0;
     const outputVat = abc - priceVatEx;
-    const inputVat = (expensesVatInc / 1.12) * 0.12;
+
+    const inputVat = expensesVatInc * (12 / 112);
     const expensesVatEx = expensesVatInc - inputVat;
+
     const taxableIncome = abc - expensesVatEx - expensesNonVat;
     const outputVatCalc = priceVatEx * 0.12;
+
     const withholdingVat5 = priceVatEx * 0.05;
     const vatStillPayable = outputVatCalc - withholdingVat5 - inputVat;
+
     const incomeTaxDue = taxableIncome * 0.25;
     const withholdingIt2 = priceVatEx * 0.02;
     const incomeTaxStillPayable = incomeTaxDue - withholdingIt2;
+
     const totalTaxesPayable = vatStillPayable + incomeTaxStillPayable;
     const totalIfNoWithholding = outputVatCalc - inputVat + incomeTaxDue;
+
     const netIncomeAfterTax = abc - expensesVatInc - expensesNonVat - totalIfNoWithholding;
-    const percentIncome = 1 - (expensesVatInc + expensesNonVat + totalIfNoWithholding) / abc;
-    const checqueComp = abc - withholdingVat5 - withholdingIt2;
-    const chequeReceivable = checqueComp * (1 - retentionPercent / 100);
-    const tpc1Percent = undeclaredExpenses > 0 ? (undeclaredExpenses / abc) : 0;
+
+    const percentIncome = abc
+      ? 1 - (expensesVatInc + expensesNonVat + totalIfNoWithholding) / abc
+      : 0;
+
+    const chequeComp = abc - withholdingVat5 - withholdingIt2;
+    const chequeReceivable = chequeComp * (1 - retentionPercent / 100);
+
+    const tpc1Percent = undeclaredExpenses > 0 ? undeclaredExpenses / abc : 0;
     const netIncomeAfterTpc1 = netIncomeAfterTax - undeclaredExpenses;
 
     setCalculations({
-      priceVatEx, outputVat, abc, expensesVatInc, inputVat, expensesVatEx, expensesNonVat,
-      taxableIncome, outputVatCalc, withholdingVat5, vatStillPayable, incomeTaxDue,
-      withholdingIt2, incomeTaxStillPayable, totalTaxesPayable, totalIfNoWithholding,
-      netIncomeAfterTax, percentIncome, chequeReceivable, undeclaredExpenses,
-      tpc1Percent, netIncomeAfterTpc1, checqueComp
+      priceVatEx,
+      outputVat,
+      abc,
+      expensesVatInc,
+      inputVat,
+      expensesVatEx,
+      expensesNonVat,
+      taxableIncome,
+      outputVatCalc,
+      withholdingVat5,
+      vatStillPayable,
+      incomeTaxDue,
+      withholdingIt2,
+      incomeTaxStillPayable,
+      totalTaxesPayable,
+      totalIfNoWithholding,
+      netIncomeAfterTax,
+      percentIncome,
+      chequeReceivable,
+      undeclaredExpenses,
+      tpc1Percent,
+      netIncomeAfterTpc1,
+      chequeComp
     });
-  };
+  }, [inputs]);
+
+  useEffect(() => {
+    calculateTaxes();
+  }, [calculateTaxes]);
 
   const handleInputChange = (field, value) => {
-    setInputs(prev => ({ ...prev, [field]: field === 'projectName' || field === 'projectId' ? value : (parseFloat(value) || 0) }));
+    setInputs(prev => ({
+      ...prev,
+      [field]: field === 'projectName' || field === 'projectId'
+        ? value
+        : (parseFloat(value) || 0)
+    }));
   };
 
   const formatCurrency = (num) => {
@@ -58,6 +98,7 @@ export default function CalculatorPage({ inputs, setInputs, projects, onSave }) 
     const resultsSection = document.querySelector('.results-section');
     const tableContent = resultsSection.querySelector('.results-table');
     const newWin = window.open('');
+
     newWin.document.write(`
       <html>
         <head>
@@ -78,6 +119,7 @@ export default function CalculatorPage({ inputs, setInputs, projects, onSave }) 
         </body>
       </html>
     `);
+
     newWin.document.close();
     newWin.focus();
     newWin.print();
@@ -86,9 +128,11 @@ export default function CalculatorPage({ inputs, setInputs, projects, onSave }) 
 
   const downloadCalculation = () => {
     const lines = ['=== TAX CALCULATION REPORT ===\n'];
+
     if (inputs.projectName) {
       lines.push(`Project Name: ${inputs.projectName}\n`);
     }
+
     const sections = [
       ['PRICE BREAKDOWN', [
         ['Price (VAT-Exclusive)', calculations.priceVatEx],
@@ -170,6 +214,7 @@ export default function CalculatorPage({ inputs, setInputs, projects, onSave }) 
               ))}
             </select>
           </div>
+
           <div className="input-field">
             <label>
               Project Name <span className="optional-tag">(Optional)</span>
@@ -181,6 +226,7 @@ export default function CalculatorPage({ inputs, setInputs, projects, onSave }) 
               placeholder="Enter project name"
             />
           </div>
+
           {[
             { label: 'Total Contract Price (ABC)', field: 'abc' },
             { label: 'Expenses (VAT Inclusive)', field: 'expensesVatInc' },
@@ -202,6 +248,7 @@ export default function CalculatorPage({ inputs, setInputs, projects, onSave }) 
             </div>
           ))}
         </div>
+
         <button className="save-button" onClick={() => onSave(inputs, calculations)}>
           Save Calculation
         </button>
