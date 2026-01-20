@@ -112,11 +112,27 @@ function HistoryPage({
 
   return (
     <div className="history-page">
-      <div className="history-header">
-        <h2>Calculation History</h2>
+      <div className="history-header" style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '15px',
+        marginBottom: '20px'
+      }}>
+        <h2 style={{ margin: 0 }}>Calculation History</h2>
 
-        <div className="history-actions">
-          <button className="downloadbttn" onClick={downloadAllHistory}>
+        <div className="history-actions" style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '10px',
+          width: '100%'
+        }}>
+          <button className="downloadbttn" onClick={downloadAllHistory} style={{
+            flex: '1 1 auto',
+            minWidth: '140px',
+            padding: '10px 15px',
+            fontSize: '14px',
+            whiteSpace: 'nowrap'
+          }}>
             ⬇️ Download All
           </button>
 
@@ -124,6 +140,13 @@ function HistoryPage({
             <button
               className="savedb-button"
               onClick={() => setShowSaveModal(true)}
+              style={{
+                flex: '1 1 auto',
+                minWidth: '140px',
+                padding: '10px 15px',
+                fontSize: '14px',
+                whiteSpace: 'nowrap'
+              }}
             >
               💾 Save to Database
             </button>
@@ -133,6 +156,13 @@ function HistoryPage({
             <button
               className="importdb-button"
               onClick={() => setShowImportModal(true)}
+              style={{
+                flex: '1 1 auto',
+                minWidth: '140px',
+                padding: '10px 15px',
+                fontSize: '14px',
+                whiteSpace: 'nowrap'
+              }}
             >
               📥 Import from Database
             </button>
