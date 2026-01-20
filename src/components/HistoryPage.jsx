@@ -135,7 +135,6 @@ function HistoryPage({
           }}>
             ⬇️ Download All
           </button>
-
           {typeof onSaveToDatabase === 'function' && (
             <button
               className="savedb-button"
@@ -151,7 +150,6 @@ function HistoryPage({
               💾 Save to Database
             </button>
           )}
-
           {typeof onImportFromDatabase === 'function' && (
             <button
               className="importdb-button"
