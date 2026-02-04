@@ -9,7 +9,10 @@ export default function CalculatorPage({ inputs, setInputs, projects, onSave }) 
       expensesVatInc,
       expensesNonVat,
       retentionPercent,
-      undeclaredExpenses
+      undeclaredExpenses,
+      withholdingVatPercent = 5,
+      incomeTaxPercent = 25,
+      withholdingItPercent = 2
     } = inputs;
 
     const priceVatEx = abc ? abc / 1.12 : 0;
@@ -21,12 +24,12 @@ export default function CalculatorPage({ inputs, setInputs, projects, onSave }) 
     const taxableIncome = abc - expensesVatEx - expensesNonVat;
     const outputVatCalc = priceVatEx * 0.12;
 
-    const withholdingVat5 = priceVatEx * 0.05;
-    const vatStillPayable = outputVatCalc - withholdingVat5 - inputVat;
+    const withholdingVat = priceVatEx * (withholdingVatPercent / 100);
+    const vatStillPayable = outputVatCalc - withholdingVat - inputVat;
 
-    const incomeTaxDue = taxableIncome * 0.25;
-    const withholdingIt2 = priceVatEx * 0.02;
-    const incomeTaxStillPayable = incomeTaxDue - withholdingIt2;
+    const incomeTaxDue = taxableIncome * (incomeTaxPercent / 100);
+    const withholdingIt = priceVatEx * (withholdingItPercent / 100);
+    const incomeTaxStillPayable = incomeTaxDue - withholdingIt;
 
     const totalTaxesPayable = vatStillPayable + incomeTaxStillPayable;
     const totalIfNoWithholding = outputVatCalc - inputVat + incomeTaxDue;
@@ -37,7 +40,7 @@ export default function CalculatorPage({ inputs, setInputs, projects, onSave }) 
       ? 1 - (expensesVatInc + expensesNonVat + totalIfNoWithholding) / abc
       : 0;
 
-    const chequeComp = abc - withholdingVat5 - withholdingIt2;
+    const chequeComp = abc - withholdingVat - withholdingIt;
     const chequeReceivable = chequeComp * (1 - retentionPercent / 100);
 
     const tpc1Percent = undeclaredExpenses > 0 ? undeclaredExpenses / abc : 0;
@@ -53,10 +56,13 @@ export default function CalculatorPage({ inputs, setInputs, projects, onSave }) 
       expensesNonVat,
       taxableIncome,
       outputVatCalc,
-      withholdingVat5,
+      withholdingVat,
+      withholdingVatPercent,
       vatStillPayable,
       incomeTaxDue,
-      withholdingIt2,
+      incomeTaxPercent,
+      withholdingIt,
+      withholdingItPercent,
       incomeTaxStillPayable,
       totalTaxesPayable,
       totalIfNoWithholding,
@@ -152,13 +158,13 @@ export default function CalculatorPage({ inputs, setInputs, projects, onSave }) 
       ]],
       ['VAT COMPUTATION', [
         ['Output VAT (12% of VAT Ex Price)', calculations.outputVatCalc],
-        ['Less: 5% Withholding VAT', calculations.withholdingVat5],
+        [`Less: ${calculations.withholdingVatPercent}% Withholding VAT`, calculations.withholdingVat],
         ['Less: Input VAT', calculations.inputVat],
         ['VAT Still Payable', calculations.vatStillPayable],
       ]],
       ['INCOME TAX', [
-        ['Income Tax Due (25% of Taxable Income)', calculations.incomeTaxDue],
-        ['Less: 2% Withholding IT', calculations.withholdingIt2],
+        [`Income Tax Due (${calculations.incomeTaxPercent}% of Taxable Income)`, calculations.incomeTaxDue],
+        [`Less: ${calculations.withholdingItPercent}% Withholding IT`, calculations.withholdingIt],
         ['Income Tax Still Payable', calculations.incomeTaxStillPayable],
       ]],
       ['SUMMARY', [
@@ -231,19 +237,22 @@ export default function CalculatorPage({ inputs, setInputs, projects, onSave }) 
             { label: 'Total Contract Price (ABC)', field: 'abc' },
             { label: 'Expenses (VAT Inclusive)', field: 'expensesVatInc' },
             { label: 'Expenses (Non-VATable)', field: 'expensesNonVat' },
+            { label: 'Withholding VAT (%)', field: 'withholdingVatPercent', defaultValue: 5 },
+            { label: 'Income Tax Rate (%)', field: 'incomeTaxPercent', defaultValue: 25 },
+            { label: 'Withholding Income Tax (%)', field: 'withholdingItPercent', defaultValue: 2 },
             { label: 'Retention Percentage (%)', field: 'retentionPercent' },
             { label: 'Undeclared Expenses', field: 'undeclaredExpenses', optional: true },
-          ].map(({ label, field, optional }) => (
+          ].map(({ label, field, optional, defaultValue }) => (
             <div className={`input-field ${optional ? 'optional' : ''}`} key={field}>
               <label>
                 {label} {optional && <span className="optional-tag">(Optional)</span>}
               </label>
               <input
                 type="number"
-                value={inputs[field] || ''}
+                value={inputs[field] !== undefined ? inputs[field] : (defaultValue || '')}
                 onChange={(e) => handleInputChange(field, e.target.value)}
                 step="0.01"
-                placeholder="0.00"
+                placeholder={defaultValue ? defaultValue.toString() : "0.00"}
               />
             </div>
           ))}
@@ -284,13 +293,13 @@ export default function CalculatorPage({ inputs, setInputs, projects, onSave }) 
               ]],
               ['VAT COMPUTATION', [
                 ['Output VAT (12% of VAT Ex Price)', calculations.outputVatCalc],
-                ['Less: 5% Withholding VAT', calculations.withholdingVat5],
+                [`Less: ${calculations.withholdingVatPercent || 5}% Withholding VAT`, calculations.withholdingVat],
                 ['Less: Input VAT', calculations.inputVat],
                 ['VAT Still Payable', calculations.vatStillPayable],
               ]],
               ['INCOME TAX', [
-                ['Income Tax Due (25% of Taxable Income)', calculations.incomeTaxDue],
-                ['Less: 2% Withholding IT', calculations.withholdingIt2],
+                [`Income Tax Due (${calculations.incomeTaxPercent || 25}% of Taxable Income)`, calculations.incomeTaxDue],
+                [`Less: ${calculations.withholdingItPercent || 2}% Withholding IT`, calculations.withholdingIt],
                 ['Income Tax Still Payable', calculations.incomeTaxStillPayable],
               ]],
               ['SUMMARY', [
