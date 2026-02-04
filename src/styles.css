@@ -1049,3 +1049,11 @@ body {
     display: none !important;
   }
 }
+
+input.gray-bg {
+  background-color: #f5f5f5;
+}
+
+input.gray-bg:focus {
+  background-color: #fff;
+}

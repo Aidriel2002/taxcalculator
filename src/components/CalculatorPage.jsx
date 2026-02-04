@@ -10,66 +10,71 @@ export default function CalculatorPage({ inputs, setInputs, projects, onSave }) 
       expensesNonVat,
       retentionPercent,
       undeclaredExpenses,
-      withholdingVatPercent = 5,
-      incomeTaxPercent = 25,
-      withholdingItPercent = 2
+      withholdingVatPercent,
+      incomeTaxPercent,
+      withholdingItPercent
     } = inputs;
+
+    // Use defaults if empty or undefined
+    const wvPercent = withholdingVatPercent === '' || withholdingVatPercent === undefined ? 5 : withholdingVatPercent;
+    const itPercent = incomeTaxPercent === '' || incomeTaxPercent === undefined ? 25 : incomeTaxPercent;
+    const witPercent = withholdingItPercent === '' || withholdingItPercent === undefined ? 2 : withholdingItPercent;
 
     const priceVatEx = abc ? abc / 1.12 : 0;
     const outputVat = abc - priceVatEx;
 
-    const inputVat = expensesVatInc * (12 / 112);
-    const expensesVatEx = expensesVatInc - inputVat;
+    const inputVat = (expensesVatInc || 0) * (12 / 112);
+    const expensesVatEx = (expensesVatInc || 0) - inputVat;
 
-    const taxableIncome = abc - expensesVatEx - expensesNonVat;
+    const taxableIncome = (abc || 0) - expensesVatEx - (expensesNonVat || 0);
     const outputVatCalc = priceVatEx * 0.12;
 
-    const withholdingVat = priceVatEx * (withholdingVatPercent / 100);
+    const withholdingVat = priceVatEx * (wvPercent / 100);
     const vatStillPayable = outputVatCalc - withholdingVat - inputVat;
 
-    const incomeTaxDue = taxableIncome * (incomeTaxPercent / 100);
-    const withholdingIt = priceVatEx * (withholdingItPercent / 100);
+    const incomeTaxDue = taxableIncome * (itPercent / 100);
+    const withholdingIt = priceVatEx * (witPercent / 100);
     const incomeTaxStillPayable = incomeTaxDue - withholdingIt;
 
     const totalTaxesPayable = vatStillPayable + incomeTaxStillPayable;
     const totalIfNoWithholding = outputVatCalc - inputVat + incomeTaxDue;
 
-    const netIncomeAfterTax = abc - expensesVatInc - expensesNonVat - totalIfNoWithholding;
+    const netIncomeAfterTax = (abc || 0) - (expensesVatInc || 0) - (expensesNonVat || 0) - totalIfNoWithholding;
 
     const percentIncome = abc
-      ? 1 - (expensesVatInc + expensesNonVat + totalIfNoWithholding) / abc
+      ? 1 - ((expensesVatInc || 0) + (expensesNonVat || 0) + totalIfNoWithholding) / abc
       : 0;
 
-    const chequeComp = abc - withholdingVat - withholdingIt;
-    const chequeReceivable = chequeComp * (1 - retentionPercent / 100);
+    const chequeComp = (abc || 0) - withholdingVat - withholdingIt;
+    const chequeReceivable = chequeComp * (1 - (retentionPercent || 0) / 100);
 
-    const tpc1Percent = undeclaredExpenses > 0 ? undeclaredExpenses / abc : 0;
-    const netIncomeAfterTpc1 = netIncomeAfterTax - undeclaredExpenses;
+    const tpc1Percent = (undeclaredExpenses || 0) > 0 ? (undeclaredExpenses || 0) / (abc || 1) : 0;
+    const netIncomeAfterTpc1 = netIncomeAfterTax - (undeclaredExpenses || 0);
 
     setCalculations({
       priceVatEx,
       outputVat,
-      abc,
-      expensesVatInc,
+      abc: abc || 0,
+      expensesVatInc: expensesVatInc || 0,
       inputVat,
       expensesVatEx,
-      expensesNonVat,
+      expensesNonVat: expensesNonVat || 0,
       taxableIncome,
       outputVatCalc,
       withholdingVat,
-      withholdingVatPercent,
+      withholdingVatPercent: wvPercent,
       vatStillPayable,
       incomeTaxDue,
-      incomeTaxPercent,
+      incomeTaxPercent: itPercent,
       withholdingIt,
-      withholdingItPercent,
+      withholdingItPercent: witPercent,
       incomeTaxStillPayable,
       totalTaxesPayable,
       totalIfNoWithholding,
       netIncomeAfterTax,
       percentIncome,
       chequeReceivable,
-      undeclaredExpenses,
+      undeclaredExpenses: undeclaredExpenses || 0,
       tpc1Percent,
       netIncomeAfterTpc1,
       chequeComp
@@ -85,7 +90,7 @@ export default function CalculatorPage({ inputs, setInputs, projects, onSave }) 
       ...prev,
       [field]: field === 'projectName' || field === 'projectId'
         ? value
-        : (parseFloat(value) || 0)
+        : value === '' ? '' : parseFloat(value)
     }));
   };
 
@@ -237,19 +242,20 @@ export default function CalculatorPage({ inputs, setInputs, projects, onSave }) 
             { label: 'Total Contract Price (ABC)', field: 'abc' },
             { label: 'Expenses (VAT Inclusive)', field: 'expensesVatInc' },
             { label: 'Expenses (Non-VATable)', field: 'expensesNonVat' },
-            { label: 'Withholding VAT (%)', field: 'withholdingVatPercent', defaultValue: 5 },
-            { label: 'Income Tax Rate (%)', field: 'incomeTaxPercent', defaultValue: 25 },
-            { label: 'Withholding Income Tax (%)', field: 'withholdingItPercent', defaultValue: 2 },
+            { label: 'Withholding VAT (%)', field: 'withholdingVatPercent', defaultValue: 5, grayBg: true },
+            { label: 'Income Tax Rate (%)', field: 'incomeTaxPercent', defaultValue: 25, grayBg: true },
+            { label: 'Withholding Income Tax (%)', field: 'withholdingItPercent', defaultValue: 2, grayBg: true },
             { label: 'Retention Percentage (%)', field: 'retentionPercent' },
             { label: 'Undeclared Expenses', field: 'undeclaredExpenses', optional: true },
-          ].map(({ label, field, optional, defaultValue }) => (
+          ].map(({ label, field, optional, defaultValue, grayBg }) => (
             <div className={`input-field ${optional ? 'optional' : ''}`} key={field}>
               <label>
                 {label} {optional && <span className="optional-tag">(Optional)</span>}
               </label>
               <input
                 type="number"
-                value={inputs[field] !== undefined ? inputs[field] : (defaultValue || '')}
+                className={grayBg ? 'gray-bg' : ''}
+                value={inputs[field] === '' || inputs[field] === undefined ? '' : inputs[field]}
                 onChange={(e) => handleInputChange(field, e.target.value)}
                 step="0.01"
                 placeholder={defaultValue ? defaultValue.toString() : "0.00"}
